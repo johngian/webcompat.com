@@ -1,0 +1,11 @@
+version: '3'
+services:
+  web:
+    build:
+      context: .
+      dockerfile: docker/dev.Dockerfile
+    ports:
+     - "5000:5000"
+    volumes:
+      - .:/code
+    command: python run.py -l 0.0.0.0
