@@ -1,0 +1,5 @@
+build:
+  docker:
+    web: dev.Dockerfile
+run:
+  web: touch config/secrets.py && python run.py -l 0.0.0.0 -p $PORT
