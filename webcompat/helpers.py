@@ -14,7 +14,10 @@ from functools import wraps
 import hashlib
 import json
 import os
+import math
+import random
 import re
+import urllib
 import urlparse
 
 from flask import abort
@@ -635,3 +638,44 @@ def prepare_form(form_request):
 def is_json_object(json_data):
     """Check if the JSON data are an object."""
     return isinstance(json_data, dict)
+
+
+def ab_active(experiment_id):
+    """Checks cookies and returns experiment variation if variation is still
+    active or False.
+    """
+    if experiment_id in request.cookies.keys():
+        variation_key = urllib.unquote(request.cookies[experiment_id])
+        return variation_key
+    return False
+
+
+def ab_current_experiments():
+    """Return the current experiments that the request is participating."""
+
+    curr_exp = {}
+
+    for exp in app.config['AB_EXPERIMENTS']:
+        selector = math.floor(random.random() * 10000) + 1
+        selector = selector / 100
+        curr_var = ab_active(exp)
+
+        if request.headers.get('DNT') == '1':
+            curr_exp[exp] = 'novariation'
+        elif curr_var:
+            curr_exp[exp] = curr_var
+        else:
+            for var, (start, end) in app.config['AB_EXPERIMENTS'][exp].items():
+                if selector > start and selector <= end:
+                    curr_exp[exp] = var
+    return curr_exp
+
+
+def ab_init(response, expires=None):
+    """Initialize the experiment cookies in current session.
+    """
+
+    for exp, value in g.current_experiments.items():
+        response.set_cookie(exp, value, expires=expires)
+
+    return response

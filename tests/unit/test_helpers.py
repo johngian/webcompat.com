@@ -7,11 +7,14 @@
 """Tests for helper methods in webcompat/helpers.py."""
 
 import json
+import mock
 import unittest
 
 import flask
 
 import webcompat
+from webcompat.helpers import ab_active
+from webcompat.helpers import ab_current_experiments
 from webcompat.helpers import form_type
 from webcompat.helpers import format_link_header
 from webcompat.helpers import get_browser
@@ -315,6 +318,90 @@ class TestHelpers(unittest.TestCase):
         self.assertTrue(is_json_object(json.loads('{"bar":["baz", null, 1.0, 2]}')))  # noqa
         # A JSON value, which is not an object
         self.assertFalse(is_json_object(json.loads('null')))
+
+    def test_ab_active_true(self):
+        """Check if `ab_active` returns the experiment variation view when
+        expirement cookie exists.
+        """
+        cookie = 'exp=ui-change-v1; Path=/'
+        with webcompat.app.test_request_context(
+                '/?exp=ui-change-v1',
+                method='GET',
+                environ_base={'HTTP_COOKIE': cookie}):
+            self.assertEqual(ab_active('exp'), 'ui-change-v1')
+
+    def test_ab_active_false(self):
+        """Check if `ab_active` returns `False` when the experiment cookie
+        doesn't exist.
+        """
+        cookie = 'another_exp=ui-change-v1; Path=/'
+        with webcompat.app.test_request_context(
+                '/?another_exp=ui-change-v1',
+                method='GET',
+                environ_base={'HTTP_COOKIE': cookie}):
+            self.assertEqual(ab_active('exp'), False)
+
+    def test_ab_current_experiments_active(self):
+        """Check if current experiments calculate current active experiemnt"""
+        cookie = 'exp=ui-change-v1; Path=/'
+        with webcompat.app.test_request_context(
+                '/',
+                method='GET',
+                environ_base={'HTTP_COOKIE': cookie}):
+
+            webcompat.app.config['AB_EXPERIMENTS'] = {
+                "exp": {
+                    "ui-change-v1": (0, 100)
+                }
+            }
+
+            c = ab_current_experiments()
+            self.assertEqual(c, {'exp': 'ui-change-v1'})
+
+    def test_ab_current_experiments_dnt(self):
+        """Check if current experiments respects DNT"""
+        cookie = 'exp=ui-change-v1; Path=/'
+        with webcompat.app.test_request_context(
+                '/',
+                method='GET',
+                environ_base={'HTTP_COOKIE': cookie, 'HTTP_DNT': '1'}):
+
+            webcompat.app.config['AB_EXPERIMENTS'] = {
+                "exp": {
+                    "ui-change-v1": (0, 100)
+                }
+            }
+
+            c = ab_current_experiments()
+            self.assertEqual(c, {'exp': 'novariation'})
+
+    def test_ab_current_experiments_selector(self):
+        """Check if current experiments selects the expected variations"""
+        with webcompat.app.test_request_context(
+                '/',
+                method='GET'):
+
+            webcompat.app.config['AB_EXPERIMENTS'] = {
+                "exp-1": {
+                    "ui-change-v1": (0, 20),
+                    "ui-change-v2": (20, 60),
+                    "ui-change-v3": (60, 100)
+                },
+                "exp-2": {
+                    "backend-change-v1": (0, 50),
+                    "novariation": (50, 100)
+                }
+            }
+
+            with mock.patch('webcompat.helpers.random.random') as mock_random:
+                mock_random.return_value = 0.4
+                expected_experiments = {
+                    'exp-1': 'ui-change-v2',
+                    'exp-2': 'backend-change-v1'
+                }
+                self.assertEqual(
+                    ab_current_experiments(), expected_experiments
+                )
 
 
 if __name__ == '__main__':
