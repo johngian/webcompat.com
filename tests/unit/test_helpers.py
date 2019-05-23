@@ -7,12 +7,15 @@
 """Tests for helper methods in webcompat/helpers.py."""
 
 import json
+import mock
 import unittest
 
 import flask
 
 import webcompat
 from webcompat.helpers import ab_active
+from webcompat.helpers import ab_current_experiments
+from webcompat.helpers import ab_init
 from webcompat.helpers import ab_redirect
 from webcompat.helpers import ab_view
 from webcompat.helpers import form_type
@@ -408,6 +411,68 @@ class TestHelpers(unittest.TestCase):
                 return 'Default response'
 
             self.assertEqual(_default_view(), 'Default response')
+
+    def test_ab_current_experiments_active(self):
+        """Check if current experiments calculate current active experiemnt"""
+        cookie = 'exp=ui-change-v1; Path=/'
+        with webcompat.app.test_request_context(
+                '/',
+                method='GET',
+                environ_base={'HTTP_COOKIE': cookie}):
+
+            webcompat.app.config['AB_EXPERIMENTS'] = {
+                "exp": {
+                    "ui-change-v1": (0, 100)
+                }
+            }
+
+            c = ab_current_experiments()
+            self.assertEqual(c, {'exp': 'ui-change-v1'})
+
+    def test_ab_current_experiments_dnt(self):
+        """Check if current experiments respects DNT"""
+        cookie = 'exp=ui-change-v1; Path=/'
+        with webcompat.app.test_request_context(
+                '/',
+                method='GET',
+                environ_base={'HTTP_COOKIE': cookie, 'HTTP_DNT': '1'}):
+
+            webcompat.app.config['AB_EXPERIMENTS'] = {
+                "exp": {
+                    "ui-change-v1": (0, 100)
+                }
+            }
+
+            c = ab_current_experiments()
+            self.assertEqual(c, {'exp': 'novariation'})
+
+    def test_ab_current_experiments_selector(self):
+        """Check if current experiments selects the expected variations"""
+        with webcompat.app.test_request_context(
+                '/',
+                method='GET'):
+
+            webcompat.app.config['AB_EXPERIMENTS'] = {
+                "exp-1": {
+                    "ui-change-v1": (0, 20),
+                    "ui-change-v2": (20, 60),
+                    "ui-change-v3": (60, 100)
+                },
+                "exp-2": {
+                    "backend-change-v1": (0, 50),
+                    "novariation": (50, 100)
+                }
+            }
+
+            with mock.patch('webcompat.helpers.random.random') as mock_random:
+                mock_random.return_value = 0.4
+                expected_experiments = {
+                    'exp-1': 'ui-change-v2',
+                    'exp-2': 'backend-change-v1'
+                }
+                self.assertEqual(
+                    ab_current_experiments(), expected_experiments
+                )
 
 
 if __name__ == '__main__':

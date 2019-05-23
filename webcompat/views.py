@@ -25,6 +25,8 @@ from flask_firehose import push
 from form import AUTH_REPORT
 from form import get_form
 from form import PROXY_REPORT
+from helpers import ab_current_experiments
+from helpers import ab_init
 from helpers import add_csp
 from helpers import add_sec_headers
 from helpers import bust_cache
@@ -61,6 +63,9 @@ def before_request():
     g.request_headers = request.headers
     request.nonce = sha1(uuid4().hex).hexdigest()
 
+    # Set AB testing values
+    g.current_experiments = ab_current_experiments()
+
 
 @app.after_request
 def after_request(response):
@@ -68,6 +73,7 @@ def after_request(response):
     session_db.remove()
     add_sec_headers(response)
     add_csp(response)
+    ab_init(response)
     return response
 
 
