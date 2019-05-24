@@ -52,7 +52,7 @@ if LOCALHOST:
     UPLOADS_DEFAULT_URL = 'http://localhost:5000/uploads/'
 
 # Enable/disable AB testing
-AB_TESTING = os.environ.get('AB_TESTING') == 'True'
+AB_TESTING_JS = os.environ.get('AB_TESTING_JS') == 'True'
 
 # BUG STATUS
 # The id will be initialized when the app is started.
