@@ -23,7 +23,6 @@ import urlparse
 from flask import abort
 from flask import g
 from flask import make_response
-from flask import redirect
 from flask import request
 from flask import session
 import requests
@@ -647,34 +646,6 @@ def prepare_form(form_request):
 def is_json_object(json_data):
     """Check if the JSON data are an object."""
     return isinstance(json_data, dict)
-
-
-def ab_view(variation_param, variation_value, view):
-    """Decorator that allows switching between views based on the AB
-    variation parameter.
-    """
-    def decorator(func):
-        @wraps(func)
-        def decorated_function(*args, **kwargs):
-            variation = request.args.get(variation_param, None)
-            if variation == variation_value:
-                return view(*args, **kwargs)
-            return func(*args, **kwargs)
-        return decorated_function
-    return decorator
-
-
-def ab_redirect(variation_param, variation_value, redirect_url):
-    """Decorator that redirects view based on the AB variation parameter."""
-    def decorator(func):
-        @wraps(func)
-        def decorated_function(*args, **kwargs):
-            variation = request.args.get(variation_param, None)
-            if variation == variation_value:
-                return redirect(redirect_url)
-            return func(*args, **kwargs)
-        return decorated_function
-    return decorator
 
 
 def ab_active(experiment_id):

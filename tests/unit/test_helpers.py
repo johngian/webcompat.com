@@ -15,9 +15,6 @@ import flask
 import webcompat
 from webcompat.helpers import ab_active
 from webcompat.helpers import ab_current_experiments
-from webcompat.helpers import ab_init
-from webcompat.helpers import ab_redirect
-from webcompat.helpers import ab_view
 from webcompat.helpers import form_type
 from webcompat.helpers import format_link_header
 from webcompat.helpers import get_browser
@@ -343,74 +340,6 @@ class TestHelpers(unittest.TestCase):
                 method='GET',
                 environ_base={'HTTP_COOKIE': cookie}):
             self.assertEqual(ab_active('exp'), False)
-
-    def test_ab_view_match(self):
-        """Checks if `ab_view` decorator returns the experiment's view when it
-        matches the AB params.
-        """
-        with webcompat.app.test_request_context(
-                '/?exp=ui-change-v1',
-                method='GET'):
-
-            def _experimental_view():
-                return 'Experimental response'
-
-            @ab_view('exp', 'ui-change-v1', _experimental_view)
-            def _default_view():
-                return 'Default response'
-
-            self.assertEqual(_default_view(), 'Experimental response')
-
-    def test_ab_view_no_match(self):
-        """Checks if `ab_view` decorator returns the default view when it
-        doesn't match the AB params.
-        """
-        with webcompat.app.test_request_context(
-                '/?exp=ui-change-v1',
-                method='GET'):
-
-            def _experimental_view():
-                return 'Experimental response'
-
-            @ab_view('exp', 'ui-change-v2', _experimental_view)
-            def _default_view():
-                return 'Default response'
-
-            self.assertEqual(_default_view(), 'Default response')
-
-    def test_ab_redirect_match(self):
-        """Checks if `ab_redirect` decorator redirects requests to the right
-        URL when it matches the AB params.
-        """
-        with webcompat.app.test_request_context(
-                '/?exp=redirect-url-v1',
-                method='GET'):
-
-            redirect_url = 'www.example.com/experiment'
-
-            @ab_redirect('exp', 'redirect-url-v1', redirect_url)
-            def _default_view():
-                return 'Default response'
-
-            resp = _default_view()
-            self.assertEqual(resp.status_code, 302)
-            self.assertEqual(resp.location, 'www.example.com/experiment')
-
-    def test_ab_redirect_no_match(self):
-        """Checks if `ab_redirect` decorator returns the default view
-        when it doesn't match the AB params.
-        """
-        with webcompat.app.test_request_context(
-                '/?exp=redirect-url-v1',
-                method='GET'):
-
-            redirect_url = 'www.example.com/experiment'
-
-            @ab_redirect('exp', 'redirect-url-v2', redirect_url)
-            def _default_view():
-                return 'Default response'
-
-            self.assertEqual(_default_view(), 'Default response')
 
     def test_ab_current_experiments_active(self):
         """Check if current experiments calculate current active experiemnt"""
