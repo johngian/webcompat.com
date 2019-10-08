@@ -200,17 +200,6 @@ EXTRA_LABELS = [
     'type-webvr',
 ]
 
-# AB testing config
-AB_EXPERIMENTS = {
-    'exp': {
-        'variations': {
-            'form-v1': (0, 100),
-            'form-v2': (100, 100)
-        },
-        'max-age': None
-    }
-}
-
 
 from webcompat import app  # noqa
 

@@ -5,6 +5,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 """Generic configuration for the project."""
 
+import json
 import os
 
 # Define the application base directory
@@ -113,3 +114,4 @@ Contact: mailto:miket@mozilla.com
 # AB setup
 # Comma separated list of user IDs to exempt from experiments
 AB_EXEMPT_USERS = os.environ.get('AB_EXEMPT_USERS', '').split(',')
+AB_EXPERIMENTS = json.loads(os.environ.get('AB_EXPERIMENTS', '{}'))
