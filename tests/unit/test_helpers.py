@@ -499,6 +499,38 @@ class TestHelpers(unittest.TestCase):
             ab_init(response)
             response.set_cookie.assert_not_called()
 
+    def test_ab_init_novariation(self):
+        """Check if ab_init sets no cookie when novariation chosen"""
+        with webcompat.app.test_request_context(
+                '/',
+                method='GET') as ctx:
+
+            webcompat.app.config['AB_EXPERIMENTS'] = {
+                'exp-1': {
+                    'variations': {
+                        'ui-change-v1': (0, 20),
+                        'novariation': (20, 100)
+                    },
+                    'max-age': 604800
+                }
+            }
+
+            with mock.patch('webcompat.helpers.random.random') as mock_random:
+
+                self.assertEqual(ctx.request.headers.get('Set-Cookie'), None)
+
+                mock_random.return_value = 0.4
+                response = self.app.get('/')
+
+                exp_cookie_value = None
+                for header in response.headers.getlist('Set-Cookie'):
+                    cookie = parse_cookie(header)
+                    value = cookie.get('exp-1')
+                    if value:
+                        exp_cookie_value = value
+
+                self.assertEqual(exp_cookie_value, None)
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -717,7 +717,7 @@ def ab_init(response):
         return response
 
     for exp_id, var in g.current_experiments.items():
-        if not request.cookies.get(exp_id) or False:
+        if not request.cookies.get(exp_id) and var != 'novariation':
             max_age = app.config['AB_EXPERIMENTS'][exp_id]['max-age']
             response.set_cookie(exp_id, var, max_age=max_age)
 
