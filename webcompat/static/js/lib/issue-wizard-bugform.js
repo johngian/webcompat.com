@@ -1334,3 +1334,16 @@ BugForm.prototype.addImageURL = function(response) {
 };
 
 new BugForm();
+
+// Track experiment analytics in GA
+$('.button.next-step').click(function() {
+  if (window.hasOwnProperty('ga')) {
+    window.ga('send', 'event', 'wizard next step', 'click');
+  }
+});
+
+$('#submitgithub, #open-username').click(function() {
+  if (window.hasOwnProperty('ga')) {
+    window.ga('send', 'event', 'wizard submit form', 'submit');
+  }
+});
